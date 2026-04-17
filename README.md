@@ -1,7 +1,7 @@
 # offboard_px4_course
 
 This repository is now a ROS 2 Python package named `offboard_px4_course`.
-It contains two **ROS 2 + MAVROS** nodes:
+It contains four **ROS 2 + MAVROS** nodes:
 
 - `offboard`: publish local position setpoints, request `OFFBOARD`, arm the vehicle, and hold the current `x/y` position while climbing to a fixed altitude.
 - `takeofflanding`: perform an offboard takeoff, hold, and landing mission.
@@ -16,6 +16,12 @@ It contains two **ROS 2 + MAVROS** nodes:
 - PX4 v1.15
 - MAVROS
 - OpenCV ArUco + `cv_bridge`
+
+---
+
+## Guidance
+
+Theory and behavior notes for `offboard`, `takeofflanding`, and `takeoff_point_hold` are documented in [guidance.md](guidance.md).
 
 ---
 
