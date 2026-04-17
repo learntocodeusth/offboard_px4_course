@@ -29,6 +29,7 @@ setup(
         "console_scripts": [
             "offboard = offboard_px4_course.offboard:main",
             "takeofflanding = offboard_px4_course.takeofflanding:main",
+            "takeoff_point_hold = offboard_px4_course.takeoff_point_hold:main",
             "aruco_takeoff = offboard_px4_course.aruco_takeoff:main",
         ],
     },

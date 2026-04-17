@@ -76,15 +76,15 @@
       <elevation>0</elevation>
     </spherical_coordinates>
 
-    <!-- ArUco Marker ID 7 -->
+    <!-- ArUco Marker ID 7 centered at the PX4 takeoff point -->
     <model name="aruco_marker_id_7">
       <static>true</static>
-      <pose>2.2 0.8 0.005 0 0 0</pose>
+      <pose>0 0 0.005 0 0 0</pose>
       <link name="marker_link">
         <collision name="marker_collision">
           <geometry>
             <box>
-              <size>1.2 1.2 0.01</size>
+              <size>1.6 1.6 0.01</size>
             </box>
           </geometry>
         </collision>
@@ -92,7 +92,7 @@
         <visual name="marker_base">
           <geometry>
             <box>
-              <size>1.2 1.2 0.01</size>
+              <size>1.6 1.6 0.01</size>
             </box>
           </geometry>
           <material>
@@ -103,10 +103,10 @@
         </visual>
 
         <visual name="cell_r1_c1">
-          <pose>-0.3 0.3 0.011 0 0 0</pose>
+          <pose>-0.4 0.4 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -116,10 +116,10 @@
         </visual>
 
         <visual name="cell_r1_c2">
-          <pose>-0.1 0.3 0.011 0 0 0</pose>
+          <pose>-0.1333333 0.4 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -129,10 +129,10 @@
         </visual>
 
         <visual name="cell_r2_c2">
-          <pose>-0.1 0.1 0.011 0 0 0</pose>
+          <pose>-0.1333333 0.1333333 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -142,10 +142,10 @@
         </visual>
 
         <visual name="cell_r3_c1">
-          <pose>-0.3 -0.1 0.011 0 0 0</pose>
+          <pose>-0.4 -0.1333333 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -155,10 +155,10 @@
         </visual>
 
         <visual name="cell_r3_c2">
-          <pose>-0.1 -0.1 0.011 0 0 0</pose>
+          <pose>-0.1333333 -0.1333333 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -168,10 +168,10 @@
         </visual>
 
         <visual name="cell_r3_c3">
-          <pose>0.1 -0.1 0.011 0 0 0</pose>
+          <pose>0.1333333 -0.1333333 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -181,10 +181,10 @@
         </visual>
 
         <visual name="cell_r3_c4">
-          <pose>0.3 -0.1 0.011 0 0 0</pose>
+          <pose>0.4 -0.1333333 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
@@ -194,10 +194,10 @@
         </visual>
 
         <visual name="cell_r4_c3">
-          <pose>0.1 -0.3 0.011 0 0 0</pose>
+          <pose>0.1333333 -0.4 0.011 0 0 0</pose>
           <geometry>
             <box>
-              <size>0.2 0.2 0.012</size>
+              <size>0.2666667 0.2666667 0.012</size>
             </box>
           </geometry>
           <material>
