@@ -40,7 +40,13 @@ class MissionPhase(str, Enum):
     HOVER = "HOVER"
 
 
-class ArucoTakeoffController(Node):
+class GimbalArucoTakeoffController(Node):
+    IMAGE_TOPIC = "/world/default/model/x500_gimbal_0/link/camera_link/sensor/camera/image"
+    IMG_W = 1280
+    IMG_H = 720
+    HFOV_RAD = 2.0
+    MARKER_SIZE_M = 0.2
+    MARKER_TIMEOUT_S = 0.5
     TARGET_ALT = 2.0
     SETPOINT_PERIOD = 0.1
     REQUEST_PERIOD = 1.0
@@ -50,11 +56,12 @@ class ArucoTakeoffController(Node):
     LAND_SETPOINT_ALT = 0.10
 
     def __init__(self) -> None:
-        super().__init__("aruco_takeoff_controller")
+        super().__init__("gimbal_aruco_takeoff_controller")
 
-        self.declare_parameter("camera_topic", "/camera")
+        self.declare_parameter("camera_topic", self.IMAGE_TOPIC)
         self.declare_parameter("aruco_id", -1)
         self.declare_parameter("target_altitude", self.TARGET_ALT)
+        self.declare_parameter("show_camera", True)
 
         state_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -76,7 +83,7 @@ class ArucoTakeoffController(Node):
         self.pos_pub = self.create_publisher(
             PoseStamped, "/mavros/setpoint_position/local", sp_qos
         )
-        self.debug_pub = self.create_publisher(Image, "/aruco/debug_image", 10)
+        self.debug_pub = self.create_publisher(Image, "/aruco/gimbal_debug_image", 10)
 
         self.arm_cli = self.create_client(CommandBool, "/mavros/cmd/arming")
         self.mode_cli = self.create_client(SetMode, "/mavros/set_mode")
@@ -99,11 +106,16 @@ class ArucoTakeoffController(Node):
         self.target_altitude = (
             self.get_parameter("target_altitude").get_parameter_value().double_value
         )
+        self.show_camera = (
+            self.get_parameter("show_camera").get_parameter_value().bool_value
+        )
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        detector_params = cv2.aruco.DetectorParameters()
+        detector_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
         if hasattr(cv2.aruco, "ArucoDetector"):
             self.aruco_detector = cv2.aruco.ArucoDetector(
-                self.aruco_dict, cv2.aruco.DetectorParameters()
+                self.aruco_dict, detector_params
             )
         else:
             self.aruco_detector = None
@@ -124,11 +136,14 @@ class ArucoTakeoffController(Node):
         self.hover_z = self.LAND_SETPOINT_ALT
         self.target_z = self.LAND_SETPOINT_ALT
         self.target_orientation = euler_to_quaternion(0.0, 0.0, 0.0)
+        self.last_marker_seen = self.get_clock().now()
 
         self.create_timer(self.SETPOINT_PERIOD, self.control_loop)
         self.get_logger().info(
-            "Aruco takeoff controller initialised "
-            f"(rgb_camera={self.get_parameter('camera_topic').value}, id={self.marker_id})"
+            "Gimbal ArUco takeoff controller initialised "
+            f"(camera={self.get_parameter('camera_topic').value}, "
+            f"img={self.IMG_W}x{self.IMG_H}, hfov={self.HFOV_RAD:.2f} rad, "
+            f"marker_size={self.MARKER_SIZE_M:.2f} m)"
         )
 
     def state_cb(self, msg: State) -> None:
@@ -173,18 +188,21 @@ class ArucoTakeoffController(Node):
         self.have_image = True
         if msg.encoding in ("16UC1", "32FC1"):
             self.get_logger().warn(
-                "Received depth image. ArUco detection expects an RGB topic.",
+                "Received depth image. Gimbal ArUco detection expects RGB images.",
                 throttle_duration_sec=5,
             )
             return
 
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        except Exception as exc:  # pragma: no cover - bridge errors depend on runtime
+            bgr = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        except Exception as exc:  # pragma: no cover
             self.get_logger().error(f"Image conversion failed: {exc}")
             return
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if bgr.shape[1] != self.IMG_W or bgr.shape[0] != self.IMG_H:
+            bgr = cv2.resize(bgr, (self.IMG_W, self.IMG_H))
+
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         if self.aruco_detector is not None:
             corners, ids, _ = self.aruco_detector.detectMarkers(gray)
         else:
@@ -192,15 +210,18 @@ class ArucoTakeoffController(Node):
                 gray, self.aruco_dict, parameters=self.detector_params
             )
 
-        debug_frame = frame.copy()
         detected_ids: list[int] = []
+        debug = bgr.copy()
         if ids is not None and len(ids) > 0:
             detected_ids = [int(marker_id) for marker_id in ids.flatten()]
-            cv2.aruco.drawDetectedMarkers(debug_frame, corners, ids)
+            cv2.aruco.drawDetectedMarkers(debug, corners, ids)
+            self.last_marker_seen = self.get_clock().now()
 
             marker_match = self.marker_id < 0 or self.marker_id in detected_ids
-            if marker_match and not self.aruco_detected:
+            if marker_match:
                 matched_id = detected_ids[0] if self.marker_id < 0 else self.marker_id
+                if not self.aruco_detected:
+                    self.get_logger().info(f"Aruco detected (id={matched_id})")
                 self.aruco_detected = True
                 self.hover_xy.x = self.pose.pose.position.x
                 self.hover_xy.y = self.pose.pose.position.y
@@ -211,16 +232,15 @@ class ArucoTakeoffController(Node):
                 self.target_xy.x = self.hover_xy.x
                 self.target_xy.y = self.hover_xy.y
                 self.target_z = self.hover_z
-                self.get_logger().info(f"Aruco detected (id={matched_id})")
 
-        phase_text = f"phase={self.phase.value}"
-        status_text = (
-            f"aruco={'detected' if self.aruco_detected else 'searching'} "
-            f"ids={detected_ids if detected_ids else '[]'}"
-        )
+        marker_age = (self.get_clock().now() - self.last_marker_seen).nanoseconds / 1e9
+        if marker_age > self.MARKER_TIMEOUT_S:
+            self.aruco_detected = False
+
+        status = "detected" if self.aruco_detected else "searching"
         cv2.putText(
-            debug_frame,
-            phase_text,
+            debug,
+            f"phase={self.phase.value}",
             (20, 30),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
@@ -228,16 +248,29 @@ class ArucoTakeoffController(Node):
             2,
         )
         cv2.putText(
-            debug_frame,
-            status_text,
-            (20, 60),
+            debug,
+            f"aruco={status} ids={detected_ids if detected_ids else '[]'}",
+            (20, 65),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             (0, 255, 0) if self.aruco_detected else (0, 165, 255),
             2,
         )
+        cv2.putText(
+            debug,
+            f"marker_timeout={self.MARKER_TIMEOUT_S:.1f}s",
+            (20, 100),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 0),
+            2,
+        )
 
-        debug_msg = self.bridge.cv2_to_imgmsg(debug_frame, encoding="bgr8")
+        if self.show_camera:
+            cv2.imshow("Gimbal Camera", bgr)
+            cv2.waitKey(1)
+
+        debug_msg = self.bridge.cv2_to_imgmsg(debug, encoding="bgr8")
         debug_msg.header = msg.header
         self.debug_pub.publish(debug_msg)
 
@@ -250,9 +283,6 @@ class ArucoTakeoffController(Node):
 
     def arm(self) -> None:
         self._call(self.arm_cli, CommandBool.Request(value=True), "Arm")
-
-    def disarm(self) -> None:
-        self._call(self.arm_cli, CommandBool.Request(value=False), "Disarm")
 
     def set_mode(self, mode: str) -> None:
         self._call(self.mode_cli, SetMode.Request(custom_mode=mode), f"Mode {mode}")
@@ -320,7 +350,7 @@ class ArucoTakeoffController(Node):
 
         if not self.have_image:
             self.get_logger().info(
-                "Waiting for downward camera images...", throttle_duration_sec=5
+                "Waiting for gimbal camera images...", throttle_duration_sec=5
             )
 
         if self.phase == MissionPhase.PREFLIGHT:
@@ -356,14 +386,19 @@ class ArucoTakeoffController(Node):
 
         if self.phase == MissionPhase.HOVER:
             self.get_logger().info(
-                "Holding position above takeoff point",
+                "Holding position with gimbal camera pointed down",
                 throttle_duration_sec=5,
             )
+
+    def destroy_node(self) -> bool:
+        if self.show_camera:
+            cv2.destroyAllWindows()
+        return super().destroy_node()
 
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    node = ArucoTakeoffController()
+    node = GimbalArucoTakeoffController()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
