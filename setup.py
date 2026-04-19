@@ -22,7 +22,7 @@ setup(
     zip_safe=True,
     maintainer="admin",
     maintainer_email="admin@example.com",
-    description="Minimal PX4 offboard ROS 2 course package.",
+    description="PX4 offboard ROS 2 course package.",
     license="MIT",
     tests_require=["pytest"],
     entry_points={
@@ -30,8 +30,7 @@ setup(
             "offboard = offboard_px4_course.offboard:main",
             "takeofflanding = offboard_px4_course.takeofflanding:main",
             "takeoff_point_hold = offboard_px4_course.takeoff_point_hold:main",
-            "aruco_takeoff = offboard_px4_course.aruco_takeoff:main",
-            "gimbal_aruco_takeoff = offboard_px4_course.gimbal_aruco_takeoff:main",
+            "mono_aruco_takeoff = offboard_px4_course.mono_aruco_takeoff:main",
         ],
     },
 )
