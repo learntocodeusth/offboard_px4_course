@@ -9,11 +9,13 @@ This package now keeps only four runnable ROS 2 nodes:
 
 ## Requirements
 
-- ROS 2 Humble
-- PX4 SITL
-- MAVROS
-- OpenCV ArUco
-- `cv_bridge`
+To run smoothly, you will need the following software packages (in addition to the PX4-Autopilot directory):
+
+- **ROS 2 Humble**
+- **PX4 SITL** with Gazebo Harmonic
+- **MAVROS**: `sudo apt install ros-humble-mavros ros-humble-mavros-msgs`
+- **Gazebo Python bindings** (used by the `mono_aruco_takeoff` node for direct image transport without a ROS bridge): `sudo apt install python3-gz-transport13 python3-gz-msgs10 python3-protobuf`
+- **Computer Vision**: `sudo apt install ros-humble-cv-bridge python3-opencv`
 
 ## Recommended Working Flow
 
