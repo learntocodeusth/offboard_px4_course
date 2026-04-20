@@ -1,4 +1,4 @@
-# offboard_px4_course
+# Offboard PX4, Gazebo, ROS2 course - ISEP 2026
 
 This package now keeps only four runnable ROS 2 nodes:
 
@@ -37,16 +37,13 @@ PX4_GZ_WORLD=aruco_takeoff_world make px4_sitl gz_x500_mono_cam_down
 ### Terminal 2: MAVROS
 
 ```bash
-source /opt/ros/humble/setup.bash
-source /home/dtelab/temp/offboard_px4_course/install/setup.bash
-ros2 launch mavros px4.launch.py fcu_url:=udp://:14540@127.0.0.1:14557
+ros2 launch mavros px4.launch fcu_url:=udp://:14540@127.0.0.1:14557
 ```
 
 ### Terminal 3: Mono ArUco OFFBOARD Node
 
 ```bash
-source /opt/ros/humble/setup.bash
-source /home/dtelab/temp/offboard_px4_course/install/setup.bash
+source offboard_px4_course/install/setup.bash
 ros2 run offboard_px4_course mono_aruco_takeoff
 ```
 
@@ -56,16 +53,6 @@ Useful overrides:
 ros2 run offboard_px4_course mono_aruco_takeoff --ros-args -p target_altitude:=2.5
 ros2 run offboard_px4_course mono_aruco_takeoff --ros-args -p aruco_id:=0 -p show_camera:=false
 ```
-
-Expected behavior:
-
-- the node publishes preflight setpoints
-- requests `OFFBOARD`
-- arms the vehicle
-- takes off and hovers
-- detects the ArUco marker from the down-facing mono camera
-
-No `ros_gz_bridge` is needed for the mono camera image stream.
 
 ## Other Nodes
 
